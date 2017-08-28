@@ -1142,9 +1142,7 @@ movemouse(const Arg *arg)
 	XEvent ev;
 	Time lasttime = 0;
 
-	if (!(c = selmon->sel))
-		return;
-	if (c->isfullscreen) /* no support moving fullscreen windows by mouse */
+	if (!(c = selmon->sel) || !c->isfloating)
 		return;
 	restack(selmon);
 	ocx = c->x;
