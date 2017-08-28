@@ -214,6 +214,7 @@ static void tagmon(const Arg *arg);
 static void tile(Monitor *);
 static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
+static void togglefullscrn(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void unfocus(Client *c, int setfocus);
@@ -1020,9 +1021,12 @@ killclient(const Arg *arg)
 void
 manage(Window w, XWindowAttributes *wa)
 {
-	Client *c, *t = NULL;
+	Client *sc, *c, *t = NULL;
 	Window trans = None;
 	XWindowChanges wc;
+
+	if ((sc = selmon->sel) && sc->isfullscreen)
+		setfullscreen(sc, False);
 
 	c = ecalloc(1, sizeof(Client));
 	c->win = w;
@@ -1751,6 +1755,18 @@ togglefloating(const Arg *arg)
 }
 
 void
+togglefullscrn(const Arg *arg) {
+	Client *c;
+
+	if (!(c = selmon->sel))
+		return;
+
+	setfullscreen(c, !c->isfullscreen);
+	if (c->isfullscreen)
+		c->isfloating = False;
+}
+
+void
 toggletag(const Arg *arg)
 {
 	unsigned int newtags;
@@ -2066,6 +2082,11 @@ updatewmhints(Client *c)
 void
 view(const Arg *arg)
 {
+	Client *c;
+
+	if ((c = selmon->sel) && c->isfullscreen)
+		setfullscreen(c, False);
+
 	if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
 		return;
 	selmon->seltags ^= 1; /* toggle sel tagset */
@@ -2145,6 +2166,9 @@ void
 zoom(const Arg *arg)
 {
 	Client *c = selmon->sel;
+
+	if (c && c->isfullscreen)
+		setfullscreen(c, False);
 
 	if (!selmon->lt[selmon->sellt]->arrange
 	|| (selmon->sel && selmon->sel->isfloating))
