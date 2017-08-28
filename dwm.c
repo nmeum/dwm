@@ -50,7 +50,7 @@
 #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
 #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
                                * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
-#define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
+#define ISVISIBLE(C)            ((C)->tags & (C)->mon->tagset[(C)->mon->seltags])
 #define LENGTH(X)               (sizeof X / sizeof X[0])
 #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
 #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
@@ -185,6 +185,7 @@ static void maprequest(XEvent *e);
 static void monocle(Monitor *m);
 static void motionnotify(XEvent *e);
 static void movemouse(const Arg *arg);
+static void movestack(const Arg *arg);
 static Client *nexttiled(Client *c);
 static void pop(Client *);
 static void propertynotify(XEvent *e);
@@ -1189,6 +1190,35 @@ movemouse(const Arg *arg)
 		selmon = m;
 		sendmon(c, m);
 	}
+}
+
+void
+movestack(const Arg *arg) {
+	Client **c, **at = NULL, **lt = NULL, **to = NULL;
+
+	if(!selmon->sel || selmon->sel->isfloating)
+		return;
+	for(c = &selmon->clients; *c; c = &(*c)->next) {
+		if(*c == selmon->sel)
+			at = c;
+		else if(ISVISIBLE(*c) && !(*c)->isfloating) {
+			lt = c;
+			if(arg->i < 0 && !at)
+				to = c;
+			if(arg->i > 0 && at && !to)
+				to = &(*c)->next;
+		}
+	}
+	if(!lt)
+		/* no other client tiled */
+	  return;
+	if(!to)
+		/* wrap around */
+	  to = arg->i > 0 ? &selmon->clients : &(*lt)->next;
+	*at = selmon->sel->next;
+	selmon->sel->next = *to;
+	*to = selmon->sel;
+	arrange(selmon);
 }
 
 Client *
