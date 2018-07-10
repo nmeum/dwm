@@ -57,6 +57,8 @@
 #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
 #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
+#define MAXWH(M)                ((M)->wh - ((M)->wh * 0.1))
+#define MAXWW(M)                ((M)->ww - ((M)->ww * 0.3))
 
 /* enums */
 enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
@@ -1035,17 +1037,25 @@ manage(Window w, XWindowAttributes *wa)
 	Client *sc, *c, *t = NULL;
 	Window trans = None;
 	XWindowChanges wc;
-
-	if ((sc = selmon->sel) && sc->isfullscreen)
-		setfullscreen(sc, False);
+	Atom wtype;
 
 	c = ecalloc(1, sizeof(Client));
 	c->win = w;
+
+	wtype = getatomprop(c, netatom[NetWMWindowType]);
+	if ((sc = selmon->sel) && sc->isfullscreen)
+		setfullscreen(sc, False);
+
 	/* geometry */
 	c->x = c->oldx = wa->x;
 	c->y = c->oldy = wa->y;
-	c->w = c->oldw = wa->width;
-	c->h = c->oldh = wa->height;
+	if (wtype == netatom[NetWMWindowTypeDialog]) {
+		c->w = c->oldw = MIN(wa->width, MAXWW(selmon));
+		c->h = c->oldh = MIN(wa->height, MAXWH(selmon));
+	} else {
+		c->w = c->oldw = wa->width;
+		c->h = c->oldh = wa->height;
+	}
 	c->oldbw = wa->border_width;
 
 	updatetitle(c);
