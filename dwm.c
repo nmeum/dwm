@@ -975,6 +975,9 @@ incnmaster(const Arg *arg)
 	int n, nmaster;
 	Client *c;
 
+	if ((c = selmon->sel) && c->isfullscreen)
+		setfullscreen(c, False); /* focus is lost without this */
+
 	n = 0;
 	for (c = selmon->clients; c; c = c->next)
 		if (ISVISIBLE(c)) n++;
